@@ -3,7 +3,6 @@
 # ==========================================
 # Environments & Secrets
 .env
-.env*
 .env.local
 .env.*.local
 *.env
