@@ -1,10 +1,10 @@
-# Use official Python runtime as a parent image
-FROM python:3.11-slim
+# Use official Python runtime as base image
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app/backend
 
-# Set environment variables
+# Prevent Python from writing .pyc files and enable unbuffered output for logs
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 

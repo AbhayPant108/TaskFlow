@@ -8,8 +8,12 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # OpenAPI Schema & API Docs
+
+    # OpenAPI Schema & Interactive Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    # TaskFlow App Endpoints
+    path('api/', include('taskapp.urls')),
 ]

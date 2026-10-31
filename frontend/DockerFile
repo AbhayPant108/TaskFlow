@@ -1,35 +1,22 @@
-# Stage 1: Install dependencies
-FROM node:18-alpine AS deps
+# Use official Node.js 20 runtime as base image
+FROM node:20-alpine
+
+# Set working directory
 WORKDIR /app/frontend
+
+# Install dependencies based on package manifest
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install
 
-# Stage 2: Build the source code
-FROM node:18-alpine AS builder
-WORKDIR /app/frontend
-COPY --from=deps /app/frontend/node_modules ./node_modules
+# Copy application source code
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
 
-# Stage 3: Production runner
-FROM node:18-alpine AS runner
-WORKDIR /app/frontend
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/frontend/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
+# Set environment variables for Next.js
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Production runner must execute the standalone server.js file
-CMD ["node", "server.js"]
+# Expose Next.js port
+EXPOSE 3000
+
+# Start Next.js development server
+CMD ["npm", "run", "dev"]
