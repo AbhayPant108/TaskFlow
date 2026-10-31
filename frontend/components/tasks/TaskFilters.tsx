@@ -38,7 +38,7 @@ export function TaskFilters() {
     <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
         {/* Search bar with stable fixed width (flex-shrink-0) so its size never changes */}
-        <div className="relative w-full lg:w-96 flex-shrink-0">
+        <div className="relative w-full lg:w-96 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             value={searchTerm}
