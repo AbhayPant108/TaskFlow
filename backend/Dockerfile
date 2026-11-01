@@ -15,8 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# 1. Collect Django static files so your admin panel looks correct in production
-RUN python manage.py collectstatic --noinput
 
 # 2. DO NOT use EXPOSE 8000. Render completely ignores EXPOSE 
 # and automatically maps its dynamic port system.
@@ -24,4 +22,8 @@ RUN python manage.py collectstatic --noinput
 # 3. Run Gunicorn instead of runserver, binding dynamically to Render's $PORT
 # IMPORTANT: Replace "your_project_name" with the exact name of the folder 
 # containing your wsgi.py file (usually the folder with settings.py).
-CMD ["sh", "-c", "gunicorn your_project_name.wsgi:application --bind 0.0.0.0:$PORT"]
+
+
+# 2. REPLACE your final CMD line at the very bottom with this combined line:
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT"]
+
