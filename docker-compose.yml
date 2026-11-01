@@ -21,3 +21,14 @@ services:
       - /app/frontend/node_modules
       - /app/frontend/.next
     command: npm run dev
+
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .git
+            - venv/
+            - __pycache__/
+            - db.sqlite3

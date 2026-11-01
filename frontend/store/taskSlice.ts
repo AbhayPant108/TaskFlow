@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Task, TaskFilterParams } from '@/types/task';
+import { Task, TaskFilterParams, TaskStatus } from '@/types/task';
 import { TaskFormValues } from '@/schemas/taskSchema';
 import { taskApi } from '@/lib/api';
 
@@ -13,6 +13,8 @@ export interface TaskState {
     search: string;
     status: string;
     priority: string;
+    project: number | 'ALL';
+    assignedTo: number | 'ALL' | 'UNASSIGNED';
     ordering: string;
     page: number;
   };
@@ -33,6 +35,8 @@ const initialState: TaskState = {
     search: '',
     status: 'ALL',
     priority: 'ALL',
+    project: 'ALL',
+    assignedTo: 'ALL',
     ordering: '-created_at',
     page: 1,
   },
@@ -56,6 +60,17 @@ export const fetchTasks = createAsyncThunk(
         ordering: filters.ordering,
         page: filters.page,
       };
+
+      if (filters.project !== 'ALL') {
+        params.project = filters.project;
+      }
+
+      if (filters.assignedTo === 'UNASSIGNED') {
+        params.is_assigned = false;
+      } else if (filters.assignedTo !== 'ALL') {
+        params.assigned_to = filters.assignedTo;
+      }
+
       return await taskApi.getTasks(params);
     } catch (err: any) {
       const message = err.response?.data?.detail || err.message || 'Failed to fetch tasks';
@@ -72,22 +87,52 @@ export const createTask = createAsyncThunk(
       dispatch(fetchTasks());
       return created;
     } catch (err: any) {
-      const message = err.response?.data ? JSON.stringify(err.response.data) : 'Failed to create task';
+      const data = err.response?.data;
+      const message =
+        data?.detail ||
+        data?.title?.[0] ||
+        data?.project?.[0] ||
+        data?.assigned_to?.[0] ||
+        (typeof data === 'object' ? JSON.stringify(data) : 'Failed to create task');
       return rejectWithValue(message);
     }
-  },
+  }
 );
 
 export const updateTask = createAsyncThunk(
   'tasks/updateTask',
-  async ({ id, data }: { id: number; data: Partial<TaskFormValues> }, { dispatch, rejectWithValue }) => {
+  async (
+    { id, data }: { id: number; data: Partial<TaskFormValues> },
+    { dispatch, rejectWithValue }
+  ) => {
     try {
       const updated = await taskApi.updateTask(id, data);
       dispatch(fetchTasks());
       return updated;
     } catch (err: any) {
-      const message = err.response?.data ? JSON.stringify(err.response.data) : 'Failed to update task';
+      const data = err.response?.data;
+      const message =
+        data?.detail ||
+        data?.title?.[0] ||
+        data?.assigned_to?.[0] ||
+        (typeof data === 'object' ? JSON.stringify(data) : 'Failed to update task');
       return rejectWithValue(message);
+    }
+  }
+);
+
+export const moveTaskStatus = createAsyncThunk(
+  'tasks/moveTaskStatus',
+  async (
+    { id, status }: { id: number; status: TaskStatus },
+    { dispatch, rejectWithValue }
+  ) => {
+    try {
+      const updated = await taskApi.updateTask(id, { status } as any);
+      dispatch(fetchTasks());
+      return updated;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.detail || 'Failed to update status');
     }
   }
 );
@@ -100,7 +145,7 @@ export const deleteTask = createAsyncThunk(
       dispatch(fetchTasks());
       return id;
     } catch (err: any) {
-      const message = err.response?.data?.detail || 'Failed to delete task';
+      const message = err.response?.data?.detail || err.message || 'Failed to delete task';
       return rejectWithValue(message);
     }
   }
@@ -125,6 +170,14 @@ export const taskSlice = createSlice({
       state.filters.priority = action.payload;
       state.filters.page = 1;
     },
+    setProjectFilter: (state, action: PayloadAction<number | 'ALL'>) => {
+      state.filters.project = action.payload;
+      state.filters.page = 1;
+    },
+    setAssignedFilter: (state, action: PayloadAction<number | 'ALL' | 'UNASSIGNED'>) => {
+      state.filters.assignedTo = action.payload;
+      state.filters.page = 1;
+    },
     setOrdering: (state, action: PayloadAction<string>) => {
       state.filters.ordering = action.payload;
       state.filters.page = 1;
@@ -137,6 +190,8 @@ export const taskSlice = createSlice({
         search: '',
         status: 'ALL',
         priority: 'ALL',
+        project: 'ALL',
+        assignedTo: 'ALL',
         ordering: '-created_at',
         page: 1,
       };
@@ -144,30 +199,30 @@ export const taskSlice = createSlice({
     openCreateModal: (state) => {
       state.selectedTask = null;
       state.isFormOpen = true;
+      state.error = null;
     },
     openEditModal: (state, action: PayloadAction<Task>) => {
       state.selectedTask = action.payload;
       state.isFormOpen = true;
+      state.error = null;
     },
     closeFormModal: (state) => {
-      state.isFormOpen = false;
       state.selectedTask = null;
+      state.isFormOpen = false;
+      state.error = null;
     },
     openDeleteModal: (state, action: PayloadAction<Task>) => {
       state.taskToDelete = action.payload;
       state.isDeleteOpen = true;
     },
     closeDeleteModal: (state) => {
-      state.isDeleteOpen = false;
       state.taskToDelete = null;
-    },
-    clearError: (state) => {
-      state.error = null;
+      state.isDeleteOpen = false;
     },
   },
   extraReducers: (builder) => {
-    // Fetch tasks
     builder
+      // fetchTasks
       .addCase(fetchTasks.pending, (state) => {
         state.status = 'loading';
         state.error = null;
@@ -179,13 +234,13 @@ export const taskSlice = createSlice({
       })
       .addCase(fetchTasks.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = (action.payload as string) || 'Could not load tasks';
-      });
+        state.error = action.payload as string;
+      })
 
-    // Create task
-    builder
+      // createTask
       .addCase(createTask.pending, (state) => {
         state.mutationStatus = 'loading';
+        state.error = null;
       })
       .addCase(createTask.fulfilled, (state) => {
         state.mutationStatus = 'succeeded';
@@ -194,12 +249,12 @@ export const taskSlice = createSlice({
       .addCase(createTask.rejected, (state, action) => {
         state.mutationStatus = 'failed';
         state.error = action.payload as string;
-      });
+      })
 
-    // Update task
-    builder
+      // updateTask
       .addCase(updateTask.pending, (state) => {
         state.mutationStatus = 'loading';
+        state.error = null;
       })
       .addCase(updateTask.fulfilled, (state) => {
         state.mutationStatus = 'succeeded';
@@ -209,10 +264,18 @@ export const taskSlice = createSlice({
       .addCase(updateTask.rejected, (state, action) => {
         state.mutationStatus = 'failed';
         state.error = action.payload as string;
-      });
+      })
 
-    // Delete task
-    builder
+      // moveTaskStatus (optimistic update)
+      .addCase(moveTaskStatus.pending, (state, action) => {
+        const { id, status } = action.meta.arg;
+        const task = state.items.find((t) => t.id === id);
+        if (task) {
+          task.status = status;
+        }
+      })
+
+      // deleteTask
       .addCase(deleteTask.pending, (state) => {
         state.mutationStatus = 'loading';
       })
@@ -233,6 +296,8 @@ export const {
   setSearch,
   setStatusFilter,
   setPriorityFilter,
+  setProjectFilter,
+  setAssignedFilter,
   setOrdering,
   setPage,
   resetFilters,
@@ -241,7 +306,6 @@ export const {
   closeFormModal,
   openDeleteModal,
   closeDeleteModal,
-  clearError,
 } = taskSlice.actions;
 
 export default taskSlice.reducer;
