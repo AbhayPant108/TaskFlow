@@ -25,5 +25,5 @@ COPY . .
 
 
 # 2. REPLACE your final CMD line at the very bottom with this combined line:
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn apis.wsgi:application --bind 0.0.0.0:$PORT"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn your_project_name.wsgi:application --bind 0.0.0.0:$PORT"]
 
