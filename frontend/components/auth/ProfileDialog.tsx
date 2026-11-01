@@ -24,12 +24,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { Loader2, KeyRound, User, CheckCircle2 } from 'lucide-react';
+import { Loader2, KeyRound, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export function ProfileDialog() {
   const { user, isProfileModalOpen, closeProfile, editProfile, updatePassword } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Password visibility states
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showNewConfirm, setShowNewConfirm] = useState(false);
 
   // Profile Form
   const {
@@ -212,11 +217,22 @@ export function ProfileDialog() {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Current Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...regPassword('old_password')}
-                />
+                <div className="relative">
+                  <Input
+                    type={showOldPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...regPassword('old_password')}
+                    className={`pr-10 ${passwordErrors.old_password ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none"
+                    aria-label={showOldPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showOldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {passwordErrors.old_password && (
                   <p className="text-xs text-red-500">{passwordErrors.old_password.message}</p>
                 )}
@@ -226,11 +242,22 @@ export function ProfileDialog() {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   New Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...regPassword('new_password')}
-                />
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...regPassword('new_password')}
+                    className={`pr-10 ${passwordErrors.new_password ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none"
+                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {passwordErrors.new_password && (
                   <p className="text-xs text-red-500">{passwordErrors.new_password.message}</p>
                 )}
@@ -240,11 +267,22 @@ export function ProfileDialog() {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Confirm New Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...regPassword('new_password_confirm')}
-                />
+                <div className="relative">
+                  <Input
+                    type={showNewConfirm ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...regPassword('new_password_confirm')}
+                    className={`pr-10 ${passwordErrors.new_password_confirm ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewConfirm((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none"
+                    aria-label={showNewConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {passwordErrors.new_password_confirm && (
                   <p className="text-xs text-red-500">
                     {passwordErrors.new_password_confirm.message}

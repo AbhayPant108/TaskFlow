@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, LogIn, UserPlus, ShieldCheck } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export function AuthDialog() {
   const {
@@ -29,15 +29,14 @@ export function AuthDialog() {
     closeAuth,
     login,
     register: registerAuth,
+    openAuth,
     error,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>(authModalMode);
-
-  // Sync activeTab when authModalMode changes
-  if (isAuthModalOpen && activeTab !== authModalMode) {
-    setActiveTab(authModalMode);
-  }
+  // Password visibility states (see / unsee)
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
 
   // Login Form
   const {
@@ -91,6 +90,7 @@ export function AuthDialog() {
 
   // Quick Demo Account Helper
   const setDemoUser = (email: string) => {
+    openAuth('login');
     setLoginValue('email', email);
     setLoginValue('password', 'AdminPass123!');
   };
@@ -118,30 +118,21 @@ export function AuthDialog() {
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
-              onClick={() => {
-                setActiveTab('login');
-                setDemoUser('admin@taskflow.dev');
-              }}
+              onClick={() => setDemoUser('admin@taskflow.dev')}
               className="text-xs px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 font-medium cursor-pointer"
             >
               Alex (Admin)
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab('login');
-                setDemoUser('sarah.chen@taskflow.dev');
-              }}
+              onClick={() => setDemoUser('sarah.chen@taskflow.dev')}
               className="text-xs px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 font-medium cursor-pointer"
             >
               Sarah (Manager)
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab('login');
-                setDemoUser('david.kim@taskflow.dev');
-              }}
+              onClick={() => setDemoUser('david.kim@taskflow.dev')}
               className="text-xs px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 font-medium cursor-pointer"
             >
               David (Member)
@@ -155,7 +146,10 @@ export function AuthDialog() {
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'login' | 'register')}>
+        <Tabs
+          value={authModalMode}
+          onValueChange={(val) => openAuth(val as 'login' | 'register')}
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login" className="flex items-center gap-1.5">
               <LogIn className="h-4 w-4" /> Sign In
@@ -187,12 +181,26 @@ export function AuthDialog() {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...regLogin('password')}
-                  className={loginErrors.password ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...regLogin('password')}
+                    className={`pr-10 ${loginErrors.password ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none"
+                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 {loginErrors.password && (
                   <p className="text-xs text-red-500">{loginErrors.password.message}</p>
                 )}
@@ -210,6 +218,19 @@ export function AuthDialog() {
                 )}
                 Sign In
               </Button>
+
+              <div className="text-center pt-2">
+                <p className="text-xs text-gray-500">
+                  Don&apos;t have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => openAuth('register')}
+                    className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+                  >
+                    Create one here
+                  </button>
+                </p>
+              </div>
             </form>
           </TabsContent>
 
@@ -264,12 +285,26 @@ export function AuthDialog() {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Password (min 8 characters)
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...regRegister('password')}
-                  className={registerErrors.password ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...regRegister('password')}
+                    className={`pr-10 ${registerErrors.password ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none"
+                    aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showRegisterPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 {registerErrors.password && (
                   <p className="text-xs text-red-500">{registerErrors.password.message}</p>
                 )}
@@ -279,12 +314,26 @@ export function AuthDialog() {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Confirm Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...regRegister('password_confirm')}
-                  className={registerErrors.password_confirm ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    type={showRegisterConfirm ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...regRegister('password_confirm')}
+                    className={`pr-10 ${registerErrors.password_confirm ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterConfirm((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none"
+                    aria-label={showRegisterConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showRegisterConfirm ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 {registerErrors.password_confirm && (
                   <p className="text-xs text-red-500">
                     {registerErrors.password_confirm.message}
@@ -304,6 +353,19 @@ export function AuthDialog() {
                 )}
                 Create Account
               </Button>
+
+              <div className="text-center pt-2">
+                <p className="text-xs text-gray-500">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => openAuth('login')}
+                    className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+                  >
+                    Sign in instead
+                  </button>
+                </p>
+              </div>
             </form>
           </TabsContent>
         </Tabs>
