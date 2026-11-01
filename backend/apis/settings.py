@@ -148,7 +148,7 @@ CORS_ALLOW_CREDENTIALS = True
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'userapp.authentication.CookieJWTAuthentication',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_FILTER_BACKENDS': [
@@ -159,6 +159,13 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
+
+# Cookie Configuration for JWT
+AUTH_COOKIE_ACCESS = 'access_token'
+AUTH_COOKIE_REFRESH = 'refresh_token'
+AUTH_COOKIE_SECURE = not DEBUG
+AUTH_COOKIE_SAMESITE = 'Lax'
+AUTH_COOKIE_PATH = '/'
 
 # SimpleJWT Configuration
 SIMPLE_JWT = {
@@ -179,6 +186,12 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TaskFlow API',
     'DESCRIPTION': 'TaskFlow project management API for small teams',
-    'VERSION': '0.1.0',
+    'VERSION': '0.3.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'ENUM_NAME_OVERRIDES': {
+        'TaskStatusEnum': 'taskapp.models.Task.Status',
+        'ProjectStatusEnum': 'projectapp.models.Project.Status',
+        'UserRoleEnum': 'userapp.models.User.Role',
+        'ProjectMemberRoleEnum': 'projectapp.models.ProjectMember.Role',
+    },
 }

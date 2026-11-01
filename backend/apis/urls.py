@@ -16,4 +16,6 @@ urlpatterns = [
 
     # TaskFlow App Endpoints
     path('api/', include('taskapp.urls')),
+    path('api/', include('userapp.urls')),
+    path('api/', include('projectapp.urls')),
 ]

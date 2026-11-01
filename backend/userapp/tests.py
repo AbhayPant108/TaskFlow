@@ -227,3 +227,158 @@ class SerializerTests(TestCase):
         serializer = ChangePasswordSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertIn('new_password_confirm', serializer.errors)
+
+
+from rest_framework.test import APITestCase
+from django.urls import reverse
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class AuthRoutingAndViewsTests(APITestCase):
+    def setUp(self):
+        self.user_password = "SecurePassword123!"
+        self.user = User.objects.create_user(
+            email="api_test@example.com",
+            password=self.user_password,
+            first_name="Alice",
+            last_name="Tester",
+        )
+        self.register_url = reverse('auth-register')
+        self.login_url = reverse('auth-login')
+        self.refresh_url = reverse('auth-refresh')
+        self.logout_url = reverse('auth-logout')
+        self.me_url = reverse('auth-me')
+        self.change_password_url = reverse('auth-change-password')
+        self.users_url = reverse('user-list')
+
+    def test_register_success_sets_cookies(self):
+        payload = {
+            "email": "brand_new@example.com",
+            "password": "StrongPassword888!",
+            "password_confirm": "StrongPassword888!",
+            "first_name": "Bob",
+            "last_name": "Builder",
+        }
+        response = self.client.post(self.register_url, payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['user']['email'], "brand_new@example.com")
+        self.assertIn('access_token', response.cookies)
+        self.assertIn('refresh_token', response.cookies)
+        self.assertTrue(response.cookies['access_token']['httponly'])
+        self.assertTrue(response.cookies['refresh_token']['httponly'])
+
+    def test_register_duplicate_email_handled_in_view(self):
+        payload = {
+            "email": "api_test@example.com",  # Already exists
+            "password": "StrongPassword888!",
+            "password_confirm": "StrongPassword888!",
+        }
+        response = self.client.post(self.register_url, payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('email', response.data)
+        self.assertEqual(response.data['email'], ["A user with this email address already exists."])
+
+    def test_login_success_sets_cookies(self):
+        payload = {
+            "email": "api_test@example.com",
+            "password": self.user_password,
+        }
+        response = self.client.post(self.login_url, payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('access_token', response.cookies)
+        self.assertIn('refresh_token', response.cookies)
+        self.assertEqual(response.data['user']['email'], "api_test@example.com")
+
+    def test_login_invalid_credentials_fails(self):
+        payload = {
+            "email": "api_test@example.com",
+            "password": "WrongPassword!",
+        }
+        response = self.client.post(self.login_url, payload, format='json')
+        self.assertEqual(response.status_code, 401)
+
+    def test_get_me_with_cookie_auth(self):
+        refresh = RefreshToken.for_user(self.user)
+        access_token = str(refresh.access_token)
+
+        # Set cookie in test client
+        self.client.cookies['access_token'] = access_token
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['email'], "api_test@example.com")
+        self.assertEqual(response.data['full_name'], "Alice Tester")
+
+    def test_get_me_unauthenticated_fails(self):
+        self.client.cookies.clear()
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, 401)
+
+    def test_update_me_profile(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies['access_token'] = str(refresh.access_token)
+
+        payload = {
+            "first_name": "Alicia",
+            "bio": "Updated bio text",
+        }
+        response = self.client.patch(self.me_url, payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['first_name'], "Alicia")
+        self.assertEqual(response.data['bio'], "Updated bio text")
+
+    def test_change_password_success(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies['access_token'] = str(refresh.access_token)
+
+        payload = {
+            "old_password": self.user_password,
+            "new_password": "SuperNewPassword999!",
+            "new_password_confirm": "SuperNewPassword999!",
+        }
+        response = self.client.post(self.change_password_url, payload, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        # Verify password changed
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("SuperNewPassword999!"))
+
+    def test_change_password_wrong_old_password_in_view(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies['access_token'] = str(refresh.access_token)
+
+        payload = {
+            "old_password": "IncorrectPassword!",
+            "new_password": "SuperNewPassword999!",
+            "new_password_confirm": "SuperNewPassword999!",
+        }
+        response = self.client.post(self.change_password_url, payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('old_password', response.data)
+        self.assertEqual(response.data['old_password'], ["Current password is not correct."])
+
+    def test_refresh_token_via_cookie(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies['refresh_token'] = str(refresh)
+
+        response = self.client.post(self.refresh_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('access_token', response.cookies)
+
+    def test_logout_clears_cookies(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies['access_token'] = str(refresh.access_token)
+        self.client.cookies['refresh_token'] = str(refresh)
+
+        response = self.client.post(self.logout_url)
+        self.assertEqual(response.status_code, 200)
+        # Cookies marked for deletion have empty value
+        self.assertEqual(response.cookies['access_token'].value, '')
+        self.assertEqual(response.cookies['refresh_token'].value, '')
+
+    def test_users_list_authenticated(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies['access_token'] = str(refresh.access_token)
+
+        response = self.client.get(self.users_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(len(response.data['results']), 1)
