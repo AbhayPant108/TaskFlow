@@ -13,11 +13,13 @@ import { Search, Users, Mail } from 'lucide-react';
 export function TeamDirectory() {
   const dispatch = useAppDispatch();
   const { items: users, status, search, roleFilter } = useAppSelector((state) => state.users);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const { tasks } = useTasks();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     dispatch(fetchUsers());
-  }, [dispatch, search, roleFilter]);
+  }, [dispatch, isAuthenticated, search, roleFilter]);
 
   const roles = [
     { key: 'ALL', label: 'All Roles' },

@@ -37,11 +37,14 @@ export function useTasks() {
     isDeleteOpen,
     taskToDelete,
   } = useAppSelector((state) => state.tasks);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     dispatch(fetchTasks());
   }, [
     dispatch,
+    isAuthenticated,
     filters.search,
     filters.status,
     filters.priority,
@@ -116,7 +119,11 @@ export function useTasks() {
     saveTask,
     changeStatus,
     removeTask,
-    refresh: () => dispatch(fetchTasks()),
+    refresh: () => {
+      if (isAuthenticated) {
+        dispatch(fetchTasks());
+      }
+    },
     openCreate: () => dispatch(openCreateModal()),
     openEdit: (t: Task) => dispatch(openEditModal(t)),
     closeForm: () => dispatch(closeFormModal()),

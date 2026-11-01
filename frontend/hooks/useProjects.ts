@@ -39,31 +39,37 @@ export function useProjects() {
     isDeleteOpen,
     projectToDelete,
   } = useAppSelector((state) => state.projects);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     dispatch(fetchProjects());
-  }, [dispatch, filters.search, filters.status]);
+  }, [dispatch, isAuthenticated, filters.search, filters.status]);
 
   const selectProject = useCallback(
     (project: Project | null) => {
       dispatch(setActiveProject(project));
-      if (project) {
+      if (project && isAuthenticated) {
         dispatch(fetchProjectMembers(project.id));
       }
     },
-    [dispatch]
+    [dispatch, isAuthenticated]
   );
 
   const reloadProjects = useCallback(() => {
-    dispatch(fetchProjects());
-  }, [dispatch]);
+    if (isAuthenticated) {
+      dispatch(fetchProjects());
+    }
+  }, [dispatch, isAuthenticated]);
 
   const loadProjectDetails = useCallback(
     (id: number) => {
-      dispatch(fetchProjectById(id));
-      dispatch(fetchProjectMembers(id));
+      if (isAuthenticated) {
+        dispatch(fetchProjectById(id));
+        dispatch(fetchProjectMembers(id));
+      }
     },
-    [dispatch]
+    [dispatch, isAuthenticated]
   );
 
   const saveProject = useCallback(

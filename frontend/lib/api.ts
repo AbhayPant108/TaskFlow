@@ -24,7 +24,7 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -117,11 +117,17 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       const refreshToken = tokenStorage.getRefreshToken();
+      if (!refreshToken) {
+        isRefreshing = false;
+        processQueue(error, null);
+        tokenStorage.clearTokens();
+        return Promise.reject(error);
+      }
 
       try {
         const { data } = await axios.post<{ access: string; refresh?: string }>(
           `${API_BASE_URL}/auth/refresh/`,
-          refreshToken ? { refresh: refreshToken } : {},
+          { refresh: refreshToken },
           { withCredentials: true }
         );
 

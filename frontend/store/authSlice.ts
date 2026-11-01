@@ -29,8 +29,13 @@ export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      const _token = tokenStorage.getAccessToken();
-      // Even if no localStorage token, cookies might be present
+      const token = tokenStorage.getAccessToken();
+      const refreshToken = tokenStorage.getRefreshToken();
+      // If neither access token nor refresh token exists in storage, user is not logged in.
+      // Avoid making an unauthorized network request that triggers 401 errors.
+      if (!token && !refreshToken) {
+        return rejectWithValue('No active session');
+      }
       return await authApi.getMe();
     } catch (err: any) {
       tokenStorage.clearTokens();
@@ -182,6 +187,11 @@ export const authSlice = createSlice({
 
       // logoutUser
       .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.status = 'idle';
+      })
+      .addCase(logoutUser.rejected, (state) => {
         state.user = null;
         state.isAuthenticated = false;
         state.status = 'idle';

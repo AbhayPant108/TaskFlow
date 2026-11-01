@@ -19,8 +19,9 @@ import { TaskDeleteDialog } from '@/components/tasks/TaskDeleteDialog';
 import { TeamDirectory } from '@/components/team/TeamDirectory';
 import { AuthDialog } from '@/components/auth/AuthDialog';
 import { ProfileDialog } from '@/components/auth/ProfileDialog';
+import { AuthWrapper } from '@/components/auth/AuthWrapper';
 
-export default function Home() {
+function AuthenticatedWorkspace() {
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'projects' | 'tasks' | 'team'>('dashboard');
   const { activeProject, selectProject } = useProjects();
   const { setProject: setTaskProjectFilter } = useTasks();
@@ -123,5 +124,13 @@ export default function Home() {
       <AuthDialog />
       <ProfileDialog />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <AuthWrapper>
+      <AuthenticatedWorkspace />
+    </AuthWrapper>
   );
 }
