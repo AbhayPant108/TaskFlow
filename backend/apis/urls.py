@@ -14,7 +14,7 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
-    # TaskFlow App Endpoints
+    # TaskFlow App Endpoints    
     path('api/', include('taskapp.urls')),
     path('api/', include('userapp.urls')),
     path('api/', include('projectapp.urls')),
