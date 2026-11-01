@@ -50,6 +50,7 @@ export function useProjects() {
     (project: Project | null) => {
       dispatch(setActiveProject(project));
       if (project && isAuthenticated) {
+        dispatch(fetchProjectById(project.id));
         dispatch(fetchProjectMembers(project.id));
       }
     },

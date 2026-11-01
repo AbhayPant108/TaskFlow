@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -37,6 +37,9 @@ interface ProjectDetailViewProps {
 export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
   const { user } = useAuth();
   const {
+    activeProject,
+    activeProjectMembers,
+    loadProjectDetails,
     openForm,
     openMemberDialog,
     openDeleteDialog,
@@ -46,6 +49,20 @@ export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
   const { tasks, openCreate, openEdit, openDelete, changeStatus } = useTasks();
 
   const [activeTab, setActiveTab] = useState<'board' | 'members' | 'settings'>('board');
+
+  // Load fresh project details & members on mount or when project ID changes
+  useEffect(() => {
+    if (project?.id) {
+      loadProjectDetails(project.id);
+    }
+  }, [project?.id, loadProjectDetails]);
+
+  // Keep state synced with freshest activeProject from Redux
+  const currentProject = activeProject?.id === project.id ? activeProject : project;
+  const memberships =
+    activeProjectMembers && activeProjectMembers.length > 0
+      ? activeProjectMembers
+      : currentProject.memberships || [];
 
   // Filter tasks to this project
   const projectTasks = tasks.filter((t) => t.project === project.id);
@@ -57,8 +74,8 @@ export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
   const completedTasks = doneTasks.length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const isOwner = user?.id === project.owner?.id || project.current_user_role === 'OWNER';
-  const isAdmin = project.current_user_role === 'ADMIN' || isOwner || user?.role === 'ADMIN';
+  const isOwner = user?.id === currentProject.owner?.id || currentProject.current_user_role === 'OWNER';
+  const isAdmin = currentProject.current_user_role === 'ADMIN' || isOwner || user?.role === 'ADMIN';
 
   const handleRoleChange = async (userId: number, newRole: string) => {
     try {
@@ -224,7 +241,7 @@ export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
             <LayoutGrid className="h-4 w-4" /> Board & Tasks ({totalTasks})
           </TabsTrigger>
           <TabsTrigger value="members" className="flex items-center gap-1.5 text-xs">
-            <Users className="h-4 w-4" /> Team Members ({(project.memberships?.length || 0) + 1})
+            <Users className="h-4 w-4" /> Team Members ({memberships.length + 1})
           </TabsTrigger>
           {isOwner && (
             <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
@@ -299,7 +316,7 @@ export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
                 </Button>
               </div>
 
-              <div className="space-y-2.5 min-h-[150px]">
+              <div className="space-y-2.5 min-h-37.5">
                 {inProgressTasks.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-xs text-gray-500 dark:border-gray-800">
                     No tasks in progress
@@ -340,7 +357,7 @@ export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
                 </Button>
               </div>
 
-              <div className="space-y-2.5 min-h-[150px]">
+              <div className="space-y-2.5 min-h-37.5">
                 {doneTasks.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-xs text-gray-500 dark:border-gray-800">
                     No completed tasks yet
@@ -402,13 +419,13 @@ export function ProjectDetailView({ project, onBack }: ProjectDetailViewProps) {
             </div>
 
             {/* Memberships List */}
-            {(!project.memberships || project.memberships.length === 0) ? (
+            {memberships.length === 0 ? (
               <div className="p-8 text-center text-xs text-gray-500">
                 No additional team members joined yet.{' '}
                 {isAdmin && 'Click "Add Member" to invite colleagues.'}
               </div>
             ) : (
-              project.memberships.map((membership) => {
+              memberships.map((membership) => {
                 const memberUser = membership.user;
                 const canManageThisUser = isOwner || (isAdmin && membership.role !== 'ADMIN');
                 const isSelf = user?.id === memberUser?.id;

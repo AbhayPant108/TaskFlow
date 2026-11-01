@@ -132,7 +132,8 @@ export const addProjectMember = createAsyncThunk(
   ) => {
     try {
       const member = await projectApi.addProjectMember(projectId, payload);
-      dispatch(fetchProjectMembers(projectId));
+      await dispatch(fetchProjectMembers(projectId));
+      await dispatch(fetchProjectById(projectId));
       dispatch(fetchProjects());
       return member;
     } catch (err: any) {
@@ -141,6 +142,7 @@ export const addProjectMember = createAsyncThunk(
         data?.user_id?.[0] ||
         data?.email?.[0] ||
         data?.non_field_errors?.[0] ||
+        data?.detail ||
         (typeof data === 'string' ? data : 'Failed to add member');
       return rejectWithValue(msg);
     }
@@ -155,7 +157,8 @@ export const updateMemberRole = createAsyncThunk(
   ) => {
     try {
       const updated = await projectApi.updateProjectMemberRole(projectId, userId, role);
-      dispatch(fetchProjectMembers(projectId));
+      await dispatch(fetchProjectMembers(projectId));
+      await dispatch(fetchProjectById(projectId));
       return updated;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.detail || 'Failed to update member role');
@@ -171,7 +174,8 @@ export const removeProjectMember = createAsyncThunk(
   ) => {
     try {
       await projectApi.removeProjectMember(projectId, userId);
-      dispatch(fetchProjectMembers(projectId));
+      await dispatch(fetchProjectMembers(projectId));
+      await dispatch(fetchProjectById(projectId));
       dispatch(fetchProjects());
       return userId;
     } catch (err: any) {
@@ -242,6 +246,50 @@ export const projectSlice = createSlice({
       // fetchProjectMembers
       .addCase(fetchProjectMembers.fulfilled, (state, action) => {
         state.activeProjectMembers = action.payload;
+        if (state.activeProject) {
+          state.activeProject.memberships = action.payload;
+          state.activeProject.members_count = action.payload.length;
+        }
+      })
+
+      // addProjectMember
+      .addCase(addProjectMember.fulfilled, (state, action) => {
+        state.mutationStatus = 'succeeded';
+        state.isMemberModalOpen = false;
+        const exists = state.activeProjectMembers.some((m) => m.id === action.payload.id);
+        if (!exists) {
+          state.activeProjectMembers.push(action.payload);
+        }
+        if (state.activeProject) {
+          state.activeProject.memberships = [...state.activeProjectMembers];
+          state.activeProject.members_count = state.activeProjectMembers.length;
+        }
+      })
+      .addCase(addProjectMember.rejected, (state, action) => {
+        state.mutationStatus = 'failed';
+        state.error = action.payload as string;
+      })
+
+      // updateMemberRole
+      .addCase(updateMemberRole.fulfilled, (state, action) => {
+        const idx = state.activeProjectMembers.findIndex((m) => m.id === action.payload.id);
+        if (idx !== -1) {
+          state.activeProjectMembers[idx] = action.payload;
+        }
+        if (state.activeProject) {
+          state.activeProject.memberships = [...state.activeProjectMembers];
+        }
+      })
+
+      // removeProjectMember
+      .addCase(removeProjectMember.fulfilled, (state, action) => {
+        state.activeProjectMembers = state.activeProjectMembers.filter(
+          (m) => m.user.id !== action.payload
+        );
+        if (state.activeProject) {
+          state.activeProject.memberships = [...state.activeProjectMembers];
+          state.activeProject.members_count = state.activeProjectMembers.length;
+        }
       })
 
       // createProject
