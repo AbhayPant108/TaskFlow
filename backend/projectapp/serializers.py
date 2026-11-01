@@ -87,6 +87,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
     """
     owner = UserSummarySerializer(read_only=True)
     members_count = serializers.SerializerMethodField()
+    tasks_count = serializers.SerializerMethodField()
     current_user_role = serializers.SerializerMethodField()
 
     class Meta:
@@ -99,6 +100,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'color',
             'owner',
             'members_count',
+            'tasks_count',
             'current_user_role',
             'start_date',
             'end_date',
@@ -113,6 +115,13 @@ class ProjectListSerializer(serializers.ModelSerializer):
         if count is not None:
             return count
         return obj.members.count()
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_tasks_count(self, obj) -> int:
+        count = getattr(obj, 'tasks_count_annotated', None)
+        if count is not None:
+            return count
+        return obj.tasks.count()
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_current_user_role(self, obj):
@@ -135,6 +144,8 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     owner = UserSummarySerializer(read_only=True)
     memberships = ProjectMemberSerializer(many=True, read_only=True)
     members_count = serializers.SerializerMethodField()
+    tasks_count = serializers.SerializerMethodField()
+    completed_tasks_count = serializers.SerializerMethodField()
     current_user_role = serializers.SerializerMethodField()
 
     class Meta:
@@ -148,6 +159,8 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'owner',
             'memberships',
             'members_count',
+            'tasks_count',
+            'completed_tasks_count',
             'current_user_role',
             'start_date',
             'end_date',
@@ -162,6 +175,20 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         if count is not None:
             return count
         return obj.members.count()
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_tasks_count(self, obj) -> int:
+        count = getattr(obj, 'tasks_count_annotated', None)
+        if count is not None:
+            return count
+        return obj.tasks.count()
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_completed_tasks_count(self, obj) -> int:
+        count = getattr(obj, 'completed_tasks_count_annotated', None)
+        if count is not None:
+            return count
+        return obj.tasks.filter(status='DONE').count()
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_current_user_role(self, obj):

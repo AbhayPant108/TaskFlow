@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Task(models.Model):
@@ -12,6 +13,29 @@ class Task(models.Model):
         MEDIUM = 'MEDIUM', 'Medium'
         HIGH = 'HIGH', 'High'
         URGENT = 'URGENT', 'Urgent'
+
+    project = models.ForeignKey(
+        'projectapp.Project',
+        on_delete=models.CASCADE,
+        related_name='tasks',
+        help_text="Project this task belongs to"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_tasks',
+        help_text="User who created this task"
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_tasks',
+        help_text="User assigned to complete this task"
+    )
 
     title = models.CharField(
         max_length=255,
@@ -53,8 +77,11 @@ class Task(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        # verbose_name = 'Task'
         verbose_name_plural = 'Tasks'
+        indexes = [
+            models.Index(fields=['project', 'status']),
+            models.Index(fields=['assigned_to', 'status']),
+        ]
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.project.name})"

@@ -302,3 +302,15 @@ class ProjectMemberAPITests(TestCase):
         url = reverse('project-update-member-role', kwargs={'pk': self.project.pk, 'user_id': self.regular_member.pk})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+
+    def test_list_project_tasks(self):
+        """Member or owner can list all tasks in a project."""
+        from taskapp.models import Task
+        Task.objects.create(project=self.project, title="Task A", created_by=self.owner)
+        Task.objects.create(project=self.project, title="Task B", status=Task.Status.DONE, created_by=self.owner)
+        self.client.force_authenticate(user=self.regular_member)
+        url = reverse('project-tasks', kwargs={'pk': self.project.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)

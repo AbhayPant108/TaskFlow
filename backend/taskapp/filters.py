@@ -3,6 +3,24 @@ from .models import Task
 
 
 class TaskFilter(filters.FilterSet):
+    project = filters.NumberFilter(
+        field_name='project_id',
+        help_text="Filter tasks by project ID"
+    )
+    assigned_to = filters.NumberFilter(
+        field_name='assigned_to_id',
+        help_text="Filter tasks by assigned user ID"
+    )
+    created_by = filters.NumberFilter(
+        field_name='created_by_id',
+        help_text="Filter tasks by creator user ID"
+    )
+    is_assigned = filters.BooleanFilter(
+        field_name='assigned_to',
+        lookup_expr='isnull',
+        exclude=True,
+        help_text="Filter tasks that are assigned (true) or unassigned (false)"
+    )
     title = filters.CharFilter(
         field_name='title',
         lookup_expr='icontains',
@@ -45,6 +63,9 @@ class TaskFilter(filters.FilterSet):
     class Meta:
         model = Task
         fields = [
+            'project',
+            'assigned_to',
+            'created_by',
             'status',
             'priority',
             'due_date',

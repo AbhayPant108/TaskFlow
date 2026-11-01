@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 
+from taskapp.serializers import TaskSerializer
 from .models import Project, ProjectMember
 from .serializers import (
     ProjectListSerializer,
@@ -77,7 +78,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'memberships',
             'memberships__user'
         ).annotate(
-            members_count_annotated=Count('members', distinct=True)
+            members_count_annotated=Count('members', distinct=True),
+            tasks_count_annotated=Count('tasks', distinct=True)
         )
 
         # System admins and staff have global access
@@ -264,3 +266,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         raise PermissionDenied("You do not have permission to remove this member.")
+
+    @extend_schema(
+        summary="List project tasks",
+        description="Retrieve all tasks belonging to this project.",
+        responses={200: TaskSerializer(many=True)}
+    )
+    @action(detail=True, methods=['get'], url_path='tasks')
+    def tasks(self, request, pk=None):
+        project = self.get_object()
+        tasks_qs = project.tasks.select_related('project', 'created_by', 'assigned_to').all()
+        serializer = TaskSerializer(tasks_qs, many=True)
+        return Response(serializer.data)
