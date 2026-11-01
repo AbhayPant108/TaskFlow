@@ -25,6 +25,6 @@ COPY . .
 
 
 # 2. REPLACE your final CMD line at the very bottom with this combined line:
-# TEMPORARY CODE: Force a database flush on startup to break the lock
-CMD ["sh", "-c", "python manage.py flush --noinput && python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn apis.wsgi:application --bind 0.0.0.0:$PORT"]
+# PRODUCTION CODE: Safe startup without flushing data
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn your_project_name.wsgi:application --bind 0.0.0.0:$PORT"]
 
