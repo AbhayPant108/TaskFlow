@@ -2,10 +2,10 @@ import axios from 'axios';
 import { PaginatedTaskList, Task, TaskFilterParams } from '@/types/task';
 import { TaskFormValues } from '@/schemas/taskSchema';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
